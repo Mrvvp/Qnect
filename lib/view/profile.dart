@@ -1,3 +1,4 @@
+
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -42,14 +43,9 @@ class CommunityProfilePage extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditCommunityProfilePage(),
-                  ),
-                );
               },
             ),
+
           ],
         ),
         body: Column(
@@ -104,57 +100,7 @@ class CommunityProfilePage extends ConsumerWidget {
             CulturePage(),
           ],
         ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-class EditCommunityProfilePage extends ConsumerWidget {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _cultureController = TextEditingController();
 
-  EditCommunityProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final communityProfile = ref.watch(communityProfileProvider);
-
-    _nameController.text = communityProfile.name;
-    _descriptionController.text = communityProfile.description;
-    _cultureController.text = communityProfile.culture;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Edit Community Profile')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Community Name'),
-            ),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-            ),
-            TextFormField(
-              controller: _cultureController,
-              decoration: const InputDecoration(labelText: 'Culture'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(communityProfileProvider.notifier).updateProfile(
-                      name: _nameController.text,
-                      description: _descriptionController.text,
-                      culture: _cultureController.text,
-                    );
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
             ),
           ],
         ),

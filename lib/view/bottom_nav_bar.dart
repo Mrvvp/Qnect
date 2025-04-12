@@ -11,10 +11,10 @@ class BottomNavBarScreen extends ConsumerWidget {
   const BottomNavBarScreen({super.key});
 
   static final List<Widget> _pages = <Widget>[
-    const CommunityPage(),
+    CommunityPage(),
     const CustomMapPage(),
     BookingPage(),
-    const CommunityProfilePage()
+     CommunityProfilePage()
   ];
 
   @override

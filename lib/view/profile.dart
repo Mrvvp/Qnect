@@ -1,109 +1,147 @@
-
-import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:qrowd/view/Event.dart';
-
-
-import 'package:qrowd/view/controller.dart';
-import 'package:qrowd/view/culture.dart';
-import 'package:qrowd/view/talents.dart';
-final eventImageProvider = StateProvider<File?>((ref) => null);
-final talentImageProvider = StateProvider<File?>((ref) => null);
-final cultureImageProvider = StateProvider<File?>((ref) => null);
-
-// Add this function to pick an image
-Future<File?> pickImage(ImageSource source) async {
-  final picker = ImagePicker();
-  final pickedFile = await picker.pickImage(source: source);
-  return pickedFile != null ? File(pickedFile.path) : null;
-}
-
-
-final communityProfileProvider = StateNotifierProvider<CommunityProfileNotifier, CommunityProfile>((ref) {
-  return CommunityProfileNotifier();
-});
 
 class CommunityProfilePage extends ConsumerWidget {
   const CommunityProfilePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final communityProfile = ref.watch(communityProfileProvider);
-
-    return DefaultTabController(
-      length: 3, // Number of tabs
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Community Profile'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-              },
-            ),
-
-          ],
-        ),
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            // Community Profile Information
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: communityProfile.profileImage != null
-                        ? FileImage(communityProfile.profileImage!)
-                        : null,
-                    child: communityProfile.profileImage == null
-                        ? const Icon(Icons.group, size: 50)
-                        : null,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    communityProfile.name,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    communityProfile.description,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-
-            // TabBar
-            const TabBar(
-              labelColor: Colors.blue,
-              unselectedLabelColor: Colors.black,
-              indicatorColor: Colors.blue,
-              tabs: [
-                Tab(icon: Icon(CupertinoIcons.ticket), text: 'Events'),
-                Tab(icon: Icon(Icons.photo), text: 'Talents'),
-                Tab(icon: Icon(Icons.info), text: 'Culture'),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          const SizedBox(height: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Icon(Icons.arrow_back),
+                Icon(Icons.menu),
               ],
             ),
-
-            // TabBarView
-            Expanded(
-              child: TabBarView(
-          children: [
-            EventsPage(),
-            TalentPage(),
-            CulturePage(),
-          ],
-        ),
-
+          ),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: 24),
+              const CircleAvatar(
+                radius: 32,
+                backgroundImage: AssetImage(
+                    'lib/assets/images/Google Images 1.png'), // replace with your asset image path
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mrv',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'mrv@gmail.com',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Edit profile',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  )
+                ],
+              )
+            ],
+          ),
+          const Divider(height: 40, thickness: 0.5),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('My Bookings'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {},
+                ),
+                Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Event for you'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {},
+                ),
+                Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Offer & Coupons'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {},
+                ),
+                Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Help and Support'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {},
+                ),
+                Divider(thickness: 1, height: 32),
+                const Text(
+                  'Delete Account',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () {},
+                  child: const Text(
+                    'Log out',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 4,
+              ),
+              child: const Text(
+                'Qnnect',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          )
+        ],
       ),
     );
   }

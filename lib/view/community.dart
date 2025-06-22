@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:qrowd/view/community_profile.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({super.key});
@@ -10,18 +11,10 @@ class CommunityPage extends StatefulWidget {
 }
 
 class _CommunityPageState extends State<CommunityPage> {
-  final List<Map<String, dynamic>> communities = [
-    {
-      'name': 'Lorem ipsum dolor',
-      'description': 'Nunc nullam id imperdiet pellentesque quam.',
-      'image': 'lib/assets/images/Dark Party event banner 1.png'
-    },
-    {
-      'name': 'Lorem ipsum dolor',
-      'description': 'Nunc nullam id imperdiet pellentesque quam.',
-      'image': 'lib/assets/images/Google Images 1.png'
-    }
-  ];
+  Future<List<Map<String, dynamic>>> fetchCommunities() async {
+    final snapshot = await FirebaseFirestore.instance.collection('communities').get();
+    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+  }
 
   final List<Map<String, dynamic>> categories = [
     {'title': 'Music', 'icon': Icons.music_note},
@@ -136,97 +129,98 @@ class _CommunityPageState extends State<CommunityPage> {
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: communities.map((community) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.shade300,
-                            blurRadius: 5,
-                          )
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(16),
-                            ),
-                            child: Image.asset(
-                              community['image'],
-                              width: double.infinity,
-                              height: 180,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      community['name'],
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    SizedBox(
-                                      width: MediaQuery.of(context).size.width *
-                                          0.6,
-                                      child: Text(
-                                        community['description'],
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(
-                                  width: 80,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                          context,
-                                          CupertinoPageRoute(
-                                              builder: (context) =>
-                                                  CommunityMediaPage()));
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'View',
-                                      style: TextStyle(
-                                          fontSize: 10, color: Colors.white),
-                                    ),
-                                  ),
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: fetchCommunities(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading communities'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No communities found'));
+                  }
+
+                  final communities = snapshot.data!;
+                  return Column(
+                    children: communities.map((community) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => CommunityMediaPage(communityData: community),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.shade300,
+                                  blurRadius: 5,
                                 )
                               ],
                             ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(16),
+                                  ),
+                                  child: Image.network(
+                                    community['imageUrl'],
+                                    width: double.infinity,
+                                    height: 180,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            community['Name'],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 5),
+                                          SizedBox(
+                                            width: MediaQuery.of(context).size.width *0.8,
+                                            child: Text(
+                                              community['description'],
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      // Removed the SizedBox/ElevatedButton here
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    }).toList(),
                   );
-                }).toList(),
+                },
               ),
             ),
           ],

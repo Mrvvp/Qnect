@@ -104,6 +104,14 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
         : allEvents.where((event) => event.type == _selectedCategory).toList();
     final zoomLevel = ref.watch(mapZoomProvider);
     final asyncLocation = ref.watch(currentLocationProvider);
+    final LatLng boundsSouthWest = LatLng(6.5546, 68.1114);
+    final LatLng boundsNorthEast = LatLng(35.6745, 97.3956);
+    final LatLngBounds allowedBounds = LatLngBounds(boundsSouthWest, boundsNorthEast);
+    final LatLng fallbackLocation = LatLng(11.25, 76.78);
+
+    LatLng safeInitialCenter(LatLng location) {
+      return allowedBounds.contains(location) ? location : fallbackLocation;
+    }
     final selectedEvent = ref.watch(selectedEventProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final _showCategories = ref.watch(showCategoriesProvider);
@@ -115,21 +123,20 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
             const Center(child: CircularProgressIndicator())
           else if (asyncLocation.hasError)
             Center(child: Text('Error: ${asyncLocation.error}'))
+          else if (asyncLocation.value == null)
+            const Center(child: Text('Location not available'))
           else
             FlutterMap(
               mapController: mapController,
               options: MapOptions(
-                initialCenter:
-                    ref.watch(mapCenterProvider) ?? LatLng(11.25, 76.78),
+                initialCenter: safeInitialCenter(asyncLocation.value!),
                 initialZoom: 9.0,
                 minZoom: 6.0,
                 maxZoom: 18.0,
                 cameraConstraint: CameraConstraint.contain(
                   bounds: LatLngBounds(
-                    const LatLng(
-                        6.5546, 68.1114), // Southwest India (Kerala coast)
-                    const LatLng(
-                        35.6745, 97.3956), // Northeast India (Arunachal border)
+                    const LatLng(6.5546, 68.1114),
+                    const LatLng(35.6745, 97.3956),
                   ),
                 ),
                 interactionOptions: InteractionOptions(
@@ -155,7 +162,6 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
                 ),
                 MarkerLayer(
                   markers: [
-                    // First, render non-selected markers
                     ...events
                         .where((event) => event != selectedEvent)
                         .map((event) {
@@ -167,14 +173,16 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
                         child: _buildMarker(context, event, baseSize, ref),
                       );
                     }),
-                    // Then render the selected marker last (on top)
                     if (selectedEvent != null)
                       Marker(
                         point: selectedEvent.location,
                         width: _getMarkerSize(zoomLevel) + 20,
                         height: _getMarkerSize(zoomLevel) + 20,
-                        child: _buildMarker(context, selectedEvent,
-                            _getMarkerSize(zoomLevel) + 20, ref),
+                        child: _buildMarker(
+                            context,
+                            selectedEvent,
+                            _getMarkerSize(zoomLevel) + 20,
+                            ref),
                       ),
                   ],
                 ),

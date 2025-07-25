@@ -50,8 +50,10 @@
 
     <!-- Location Permissions -->
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>We need your location to provide better services while the app is in use.</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>We need your location to provide services even when the app is in the background.</string>
+<string>This app needs access to your location to show nearby events.</string>
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>This app needs access to your location to show nearby events.</string>
+<key>io.flutter.embedded_views_preview</key>
+<true/>
 </dict>
 </plist>

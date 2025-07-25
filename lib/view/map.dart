@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as latlng2;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:qrowd/view%20model/map_view_model.dart';
 import 'package:qrowd/view/search_page.dart';
 import 'package:qrowd/view/event_details_page.dart';
@@ -20,46 +20,20 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
     with TickerProviderStateMixin {
   bool showCategories = false;
   String? selectedCategory;
-  late final MapController mapController;
-
-  late final StreamSubscription<MapEvent> _mapEventSubscription;
+  late GoogleMapController googleMapController;
 
   Future<void> animatedMapMove(LatLng destLocation, double destZoom) async {
-    final controller = mapController;
-    final camera = controller.camera;
-
-    final latTween = Tween<double>(
-        begin: camera.center.latitude, end: destLocation.latitude);
-    final lngTween = Tween<double>(
-        begin: camera.center.longitude, end: destLocation.longitude);
-    final zoomTween = Tween<double>(begin: camera.zoom, end: destZoom);
-
-    final controllerPosition = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
+    googleMapController.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: destLocation, zoom: destZoom),
+      ),
     );
-
-    final animation = CurvedAnimation(
-      parent: controllerPosition,
-      curve: Curves.easeOutCubic,
-    );
-
-    controllerPosition.addListener(() {
-      final lat = latTween.evaluate(animation);
-      final lng = lngTween.evaluate(animation);
-      final zoom = zoomTween.evaluate(animation);
-      controller.move(LatLng(lat, lng), zoom);
-    });
-
-    controllerPosition.forward();
   }
 
   @override
   void initState() {
     super.initState();
-
-    mapController = ref.read(mapControllerProvider);
-
+    // The controller is set in the GoogleMap's onMapCreated callback
     // Only fetch location if we don’t have a saved one
     if (ref.read(mapCenterProvider) == null) {
       ref.read(currentLocationProvider.future).then((loc) {
@@ -68,24 +42,9 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
         }
       });
     }
-
-    _mapEventSubscription = mapController.mapEventStream.listen((event) {
-      if (!mounted) return;
-
-      if (event is MapEventMove) {
-        ref.read(mapZoomProvider.notifier).state = event.camera.zoom;
-        ref.read(mapCenterProvider.notifier).state = event.camera.center;
-      }
-    });
   }
 
-  @override
-  void dispose() {
-    _mapEventSubscription.cancel(); // ✅ Clean up the listener
-    super.dispose();
-  }
-
-  double _getMarkerSize(double zoom) {
+  double getMarkerSize(double zoom) {
     const double baseSize = 60;
     const double scaleStartZoom = 12.0;
     const double maxSize = 120;
@@ -102,16 +61,21 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
     final events = _selectedCategory == null
         ? allEvents
         : allEvents.where((event) => event.type == _selectedCategory).toList();
-    final zoomLevel = ref.watch(mapZoomProvider);
+    ref.watch(mapZoomProvider);
     final asyncLocation = ref.watch(currentLocationProvider);
     final LatLng boundsSouthWest = LatLng(6.5546, 68.1114);
     final LatLng boundsNorthEast = LatLng(35.6745, 97.3956);
-    final LatLngBounds allowedBounds = LatLngBounds(boundsSouthWest, boundsNorthEast);
+    final LatLngBounds allowedBounds =
+        LatLngBounds(southwest: boundsSouthWest, northeast: boundsNorthEast);
     final LatLng fallbackLocation = LatLng(11.25, 76.78);
 
-    LatLng safeInitialCenter(LatLng location) {
-      return allowedBounds.contains(location) ? location : fallbackLocation;
+    LatLng safeInitialCenter(latlng2.LatLng location) {
+      final lat = location.latitude;
+      final lng = location.longitude;
+      final target = LatLng(lat, lng);
+      return allowedBounds.contains(target) ? target : fallbackLocation;
     }
+
     final selectedEvent = ref.watch(selectedEventProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final _showCategories = ref.watch(showCategoriesProvider);
@@ -126,67 +90,49 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
           else if (asyncLocation.value == null)
             const Center(child: Text('Location not available'))
           else
-            FlutterMap(
-              mapController: mapController,
-              options: MapOptions(
-                initialCenter: safeInitialCenter(asyncLocation.value!),
-                initialZoom: 9.0,
-                minZoom: 6.0,
-                maxZoom: 18.0,
-                cameraConstraint: CameraConstraint.contain(
-                  bounds: LatLngBounds(
-                    const LatLng(6.5546, 68.1114),
-                    const LatLng(35.6745, 97.3956),
-                  ),
-                ),
-                interactionOptions: InteractionOptions(
-                  flags: InteractiveFlag.drag |
-                      InteractiveFlag.pinchZoom |
-                      InteractiveFlag.doubleTapZoom,
-                  pinchZoomThreshold: 0.3,
-                  pinchMoveThreshold: 20.0,
-                  rotationThreshold: 25.0,
-                  scrollWheelVelocity: 0.003,
-                ),
+            GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: safeInitialCenter(asyncLocation.value!),
+                zoom: 9.0,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate:
-                      "https://api.mapbox.com/styles/v1/mrvnvp/cm9fh89wo00km01s41g5dh289/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibXJ2bnZwIiwiYSI6ImNtMm00bm44bjBob24ycXM5MTA4M21yM3AifQ.0P8leBXmLQUqJMw-U5Jfag",
-                  additionalOptions: {
-                    'access_token':
-                        "pk.eyJ1IjoibXJ2bnZwIiwiYSI6ImNtMm00bm44bjBob24ycXM5MTA4M21yM3AifQ.0P8leBXmLQUqJMw-U5Jfag",
-                    'id': 'mapbox.mapbox-streets-v11',
-                  },
-                  tileProvider: NetworkTileProvider(),
-                ),
-                MarkerLayer(
-                  markers: [
-                    ...events
-                        .where((event) => event != selectedEvent)
-                        .map((event) {
-                      final double baseSize = _getMarkerSize(zoomLevel);
-                      return Marker(
-                        point: event.location,
-                        width: baseSize,
-                        height: baseSize,
-                        child: _buildMarker(context, event, baseSize, ref),
-                      );
-                    }),
-                    if (selectedEvent != null)
-                      Marker(
-                        point: selectedEvent.location,
-                        width: _getMarkerSize(zoomLevel) + 20,
-                        height: _getMarkerSize(zoomLevel) + 20,
-                        child: _buildMarker(
-                            context,
-                            selectedEvent,
-                            _getMarkerSize(zoomLevel) + 20,
-                            ref),
-                      ),
-                  ],
-                ),
-              ],
+              minMaxZoomPreference: const MinMaxZoomPreference(6.0, 18.0),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapType: MapType.terrain,
+              onMapCreated: (controller) {
+                googleMapController = controller;
+              },
+              markers: {
+                ...events
+                    .where((event) => event != selectedEvent)
+                    .map((event) => Marker(
+                          markerId: MarkerId(event.id),
+                          position: LatLng(event.location.latitude,
+                              event.location.longitude),
+                          icon: BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueOrange),
+                          onTap: () {
+                            ref.read(selectedEventProvider.notifier).state =
+                                event;
+                          },
+                        )),
+                if (selectedEvent != null)
+                  Marker(
+                    markerId: MarkerId(selectedEvent.id),
+                    position: LatLng(selectedEvent.location.latitude,
+                        selectedEvent.location.longitude),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed),
+                    onTap: () {
+                      ref.read(selectedEventProvider.notifier).state = null;
+                    },
+                  ),
+              },
+              onCameraMove: (position) {
+                ref.read(mapZoomProvider.notifier).state = position.zoom;
+                // ref.read(mapCenterProvider.notifier).state = LatLng(position.target.latitude, position.target.longitude) as LatLng;
+              },
             ),
           // 🟧 Filter Button (top-left) and Search Button (top-right) with vertical category column
           Positioned(
@@ -307,8 +253,8 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
                   final currentLocation = await ref
                       .read(mapViewModelProvider.notifier)
                       .getCurrentLocation();
-                  await animatedMapMove(
-                      currentLocation, ref.read(mapZoomProvider));
+                  // await animatedMapMove(
+                  //     currentLocation, ref.read(mapZoomProvider));
                 },
                 child: const Icon(CupertinoIcons.location_fill,
                     color: Color(0xffFF2F00)),
@@ -495,7 +441,11 @@ class _CustomMapPageState extends ConsumerState<CustomMapPage>
   }
 }
 
-Widget _buildMarker(BuildContext context, event, double size, WidgetRef ref) {
+// To render the below custom widget markers on GoogleMap,
+// you need to convert the widget to image bytes and use BitmapDescriptor.fromBytes().
+
+Widget buildMarker(
+    BuildContext context, dynamic event, double size, WidgetRef ref) {
   final isSelected = event == ref.read(selectedEventProvider);
 
   return GestureDetector(

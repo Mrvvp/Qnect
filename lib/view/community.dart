@@ -12,8 +12,9 @@ class CommunityPage extends StatefulWidget {
 
 class _CommunityPageState extends State<CommunityPage> {
   Future<List<Map<String, dynamic>>> fetchCommunities() async {
-    final snapshot = await FirebaseFirestore.instance.collection('communities').get();
-    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('communities').get();
+    return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
   final List<Map<String, dynamic>> categories = [
@@ -135,7 +136,8 @@ class _CommunityPageState extends State<CommunityPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading communities'));
+                    return const Center(
+                        child: Text('Error loading communities'));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(child: Text('No communities found'));
                   }
@@ -150,7 +152,8 @@ class _CommunityPageState extends State<CommunityPage> {
                             Navigator.push(
                               context,
                               CupertinoPageRoute(
-                                builder: (context) => CommunityMediaPage(communityData: community),
+                                builder: (context) => CommunityMediaPage(
+                                    communityData: community),
                               ),
                             );
                           },
@@ -182,10 +185,12 @@ class _CommunityPageState extends State<CommunityPage> {
                                 Padding(
                                   padding: const EdgeInsets.all(12.0),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             community['Name'],
@@ -196,7 +201,10 @@ class _CommunityPageState extends State<CommunityPage> {
                                           ),
                                           const SizedBox(height: 5),
                                           SizedBox(
-                                            width: MediaQuery.of(context).size.width *0.8,
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.8,
                                             child: Text(
                                               community['description'],
                                               maxLines: 2,
